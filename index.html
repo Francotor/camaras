@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>Revisión de cámaras</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--line:#334155;--txt:#f1f5f9;--mut:#94a3b8;--ok:#16a34a;--bad:#dc2626;--pri:#2563eb}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:0 0 calc(24px + env(safe-area-inset-bottom))}
+header{padding:calc(12px + env(safe-area-inset-top)) 14px 12px;background:#111827;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+h1{font-size:18px;margin:0 0 8px}
+h2{font-size:16px;margin:0}
+input[type=text],select,textarea{width:100%;font:inherit;color:var(--txt);background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:12px}
+input[type=text]:focus,textarea:focus,select:focus{outline:2px solid var(--pri);border-color:transparent}
+main{padding:14px;max-width:720px;margin:0 auto}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:16px}
+label,.lbl{display:block;font-size:13px;color:var(--mut);margin:0 0 6px}
+#cam,#detCam{font-size:24px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.estado{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+button{font:inherit;color:var(--txt);border:0;border-radius:12px;padding:14px;min-height:56px;cursor:pointer;background:#334155}
+button:active{transform:scale(.98)}
+button:disabled{opacity:.5}
+.est{font-size:22px;font-weight:800;letter-spacing:1px;background:#1f2937;border:3px solid transparent;color:#cbd5e1}
+.est.buena.on{background:var(--ok);color:#fff;border-color:#bbf7d0}
+.est.mala.on{background:var(--bad);color:#fff;border-color:#fecaca}
+.est.buena{border-color:#14532d}.est.mala{border-color:#7f1d1d}
+.est.on.buena{border-color:#bbf7d0}.est.on.mala{border-color:#fecaca}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.chip{min-height:48px;padding:10px 16px;border-radius:999px;background:#0b1220;border:2px solid var(--line);font-size:16px}
+.chip.on{background:#7f1d1d;border-color:#fca5a5;color:#fff;font-weight:700}
+.chip.edit{border-style:dashed;color:var(--mut)}
+.foto{width:100%;background:var(--pri);font-size:20px;font-weight:700;min-height:64px;margin-top:10px}
+.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+.pri{background:var(--pri)}
+.danger{background:#7f1d1d}
+.ok{background:#166534}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+#gpsEstado{font-size:13px;color:var(--mut);margin-top:10px;min-height:18px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.top select{width:auto;max-width:55%}
+#resumen{font-size:14px;color:var(--mut);margin-bottom:10px}
+#grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:560px){#grid{grid-template-columns:repeat(3,1fr)}}
+.card{position:relative;border-radius:12px;overflow:hidden;background:#0b1220;border:1px solid var(--line);text-align:left;padding:0;min-height:0;display:block;width:100%}
+.card img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#000}
+.card .b{padding:6px 8px 8px;font-size:13px}
+.card .b strong{font-size:15px}
+.tag{display:inline-block;font-size:12px;font-weight:800;padding:2px 8px;border-radius:6px;margin-left:6px;color:#fff}
+.tag.BUENA{background:var(--ok)}.tag.MALA{background:var(--bad)}
+.mot{color:#fca5a5;margin-top:2px}
+.vacio{color:var(--mut);text-align:center;padding:24px 0}
+dialog{width:min(560px,calc(100vw - 20px));max-height:calc(100vh - 20px);overflow:auto;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:16px;padding:14px}
+dialog::backdrop{background:rgba(0,0,0,.7)}
+dialog h3{margin:0 0 10px}
+dialog .btns{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+dialog .btns>*{flex:1;min-width:120px}
+#detCanvas{width:100%;height:auto;border-radius:10px;background:#000;display:block;margin-bottom:12px}
+.mrow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.mrow span{flex:1;padding:10px 12px;background:#0b1220;border-radius:10px}
+.mrow button{flex:0 0 auto;min-height:44px;padding:8px 14px;background:#7f1d1d}
+.chk{display:flex;gap:10px;align-items:center;margin:10px 0;font-size:16px;color:var(--txt)}
+.chk input{width:22px;height:22px}
+#toast{position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:50;background:#0b1220;border:2px solid var(--line);border-radius:12px;padding:12px 14px;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#toast.err{border-color:var(--bad)}
+#toast.ok{border-color:var(--ok)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Revisión de cámaras</h1>
+  <input type="text" id="obra" placeholder="Obra (ej. P05701 Holdco)" autocomplete="off">
+</header>
+
+<main>
+  <section class="panel" id="captura">
+    <label for="cam">Cámara N°</label>
+    <input type="text" id="cam" placeholder="Ej: C-12" autocomplete="off" autocapitalize="characters" enterkeyhint="done">
+
+    <div class="estado" id="estadoBox"></div>
+
+    <div id="motivosBox" hidden>
+      <div class="lbl">¿Por qué está mala? (marca uno o más)</div>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <button type="button" class="foto" id="btnFoto">📷 Sacar foto</button>
+    <button type="button" class="ghost" id="btnGal" style="width:100%;margin-top:8px;min-height:48px">Elegir una foto de la galería</button>
+    <label class="chk" style="margin:12px 0 0;font-size:14px"><input type="checkbox" id="autoDesc"> Guardar copia en el celular al confirmar la foto</label>
+    <div id="gpsEstado"></div>
+  </section>
+
+  <section>
+    <div class="top">
+      <h2>Fotos</h2>
+      <select id="filtro" aria-label="Fecha"></select>
+    </div>
+    <div id="resumen"></div>
+    <div id="grid"></div>
+    <div class="row" style="margin-top:14px">
+      <button type="button" class="ok" id="btnExport">Exportar / compartir</button>
+    </div>
+  </section>
+</main>
+
+<input type="file" id="fCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="fGal" accept="image/*" hidden>
+
+<dialog id="dlgPrev">
+  <h3>¿La foto salió bien?</h3>
+  <canvas id="prevCanvas" style="width:100%;height:auto;border-radius:10px;background:#000;display:block;margin-bottom:10px"></canvas>
+  <p id="prevInfo" style="margin:0 0 4px;color:var(--mut);font-size:14px"></p>
+  <div class="btns">
+    <button type="button" class="ghost" id="prevRep">↻ Repetir</button>
+    <button type="button" class="ok" id="prevOk">✔ Está bien, guardar</button>
+  </div>
+  <div class="btns"><button type="button" class="ghost" id="prevDesc">Descartar</button></div>
+</dialog>
+
+<dialog id="dlgDet">
+  <canvas id="detCanvas"></canvas>
+  <label for="detCam">Cámara N°</label>
+  <input type="text" id="detCam" autocomplete="off" autocapitalize="characters">
+  <div class="estado" id="detEstado"></div>
+  <div id="detMotBox" hidden>
+    <div class="lbl">Motivos</div>
+    <div class="chips" id="detChips"></div>
+  </div>
+  <label for="detNota">Nota (opcional)</label>
+  <textarea id="detNota" rows="2"></textarea>
+  <div class="btns">
+    <button type="button" class="ghost" id="detComp">Compartir foto</button>
+    <button type="button" class="ghost" id="detDesc">Descargar</button>
+  </div>
+  <div class="btns">
+    <button type="button" class="danger" id="detBorrar">Borrar</button>
+    <button type="button" class="pri" id="detListo">Listo</button>
+  </div>
+</dialog>
+
+<dialog id="dlgMot">
+  <h3>Motivos de "mala"</h3>
+  <div id="motLista"></div>
+  <input type="text" id="motNuevo" placeholder="Nuevo motivo (ej. Tapa dañada)" autocomplete="off">
+  <div class="btns">
+    <button type="button" class="ghost" id="motReset">Restaurar lista</button>
+    <button type="button" class="pri" id="motAgregar">Agregar</button>
+  </div>
+  <div class="btns"><button type="button" class="pri" id="motListo">Listo</button></div>
+</dialog>
+
+<dialog id="dlgExp">
+  <h3>Exportar</h3>
+  <p id="expInfo" style="margin:0 0 6px;color:var(--mut)"></p>
+  <label class="chk"><input type="checkbox" id="expMalas"> Solo las MALAS</label>
+  <div id="expProg" style="color:var(--mut);margin:6px 0"></div>
+  <div class="btns"><button type="button" class="pri" id="expPrep">Preparar archivos</button></div>
+  <div id="expRes" hidden>
+    <p id="expResTxt" style="word-break:break-word"></p>
+    <div class="btns">
+      <button type="button" class="pri" id="expShare">Compartir fotos</button>
+      <button type="button" class="pri" id="expZip">Descargar ZIP</button>
+      <button type="button" class="ghost" id="expCsv">Descargar resumen (CSV)</button>
+    </div>
+  </div>
+  <div class="btns"><button type="button" class="ghost" id="expCerrar">Cerrar</button></div>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+'use strict';
+
+/*PURE-START*/
+var DEFECTOS_BASE = ['Sucia', 'Sin terminación', 'Marco mal instalado'];
+
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+function fechaISO(ts) { var d = new Date(ts); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function fechaCorta(ts) { var d = new Date(ts); return pad2(d.getDate()) + '-' + pad2(d.getMonth() + 1) + '-' + d.getFullYear(); }
+function horaCorta(ts) { var d = new Date(ts); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+function slug(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+function gpsTexto(r) {
+  if (!r.gps) return 'SIN GPS';
+  return 'GPS ' + r.gps.lat.toFixed(5) + ', ' + r.gps.lon.toFixed(5) + (r.gps.acc ? ' (±' + Math.round(r.gps.acc) + ' m)' : '');
+}
+function nombreArchivo(r, usados, conFecha) {
+  var partes = [];
+  if (conFecha) partes.push(fechaISO(r.ts));
+  partes.push(slug(r.cam) || 'sin-numero');
+  if (r.estado === 'MALA' && r.motivos.length) {
+    partes.push(r.motivos.map(function (m) { return slug(m).toLowerCase(); }).join('+'));
+  }
+  partes.push(horaCorta(r.ts).replace(':', ''));
+  var dir = r.estado === 'MALA' ? 'MALAS/' : 'BUENAS/';
+  var base = partes.join('_'), n = base, i = 2;
+  while (usados.has(dir + n + '.jpg')) { n = base + '_' + i++; }
+  usados.add(dir + n + '.jpg');
+  return dir + n + '.jpg';
+}
+function csvCelda(v) {
+  v = String(v == null ? '' : v);
+  return /[";\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}
+function csvFilas(filas) {
+  var cab = ['Fecha', 'Hora', 'Obra', 'Camara', 'Estado', 'Motivos', 'Nota', 'Latitud', 'Longitud', 'Archivo'];
+  var out = [cab.join(';')];
+  filas.forEach(function (f) {
+    out.push([fechaCorta(f.r.ts), horaCorta(f.r.ts), f.r.obra, f.r.cam, f.r.estado,
+      (f.r.motivos || []).join(' / '), f.r.nota || '',
+      f.r.gps ? f.r.gps.lat.toFixed(6) : '', f.r.gps ? f.r.gps.lon.toFixed(6) : '', f.nombre].map(csvCelda).join(';'));
+  });
+  return '﻿' + out.join('\r\n') + '\r\n';
+}
+var CRC_T = (function () {
+  var t = new Uint32Array(256);
+  for (var n = 0; n < 256; n++) {
+    var c = n;
+    for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(u8) {
+  var c = 0xFFFFFFFF;
+  for (var i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+// ZIP sin compresión (los JPEG ya vienen comprimidos). files: [{name, data:Uint8Array, date:Date}]
+function zipBlob(files) {
+  var enc = new TextEncoder(), partes = [], central = [], off = 0;
+  files.forEach(function (f) {
+    var nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length, d = f.date || new Date();
+    var dt = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    var tm = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    var lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, tm, true); lh.setUint16(12, dt, true); lh.setUint32(14, crc, true);
+    lh.setUint32(18, sz, true); lh.setUint32(22, sz, true); lh.setUint16(26, nm.length, true); lh.setUint16(28, 0, true);
+    partes.push(new Uint8Array(lh.buffer), nm, f.data);
+    var ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+    ch.setUint16(10, 0, true); ch.setUint16(12, tm, true); ch.setUint16(14, dt, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, sz, true); ch.setUint32(24, sz, true); ch.setUint16(28, nm.length, true);
+    ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true);
+    ch.setUint32(38, 0, true); ch.setUint32(42, off, true);
+    central.push(new Uint8Array(ch.buffer), nm);
+    off += 30 + nm.length + sz;
+  });
+  var cs = 0;
+  central.forEach(function (p) { cs += p.length; });
+  var e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+  e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob(partes.concat(central, [new Uint8Array(e.buffer)]), { type: 'application/zip' });
+}
+/*PURE-END*/
+
+// ---------- utilidades ----------
+function $(s) { return document.querySelector(s); }
+function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function toBlob(c, tipo, q) { return new Promise(function (ok, err) { c.toBlob(function (b) { b ? ok(b) : err(new Error('No se pudo crear la imagen')); }, tipo, q); }); }
+var toastT;
+function aviso(msg, tipo) {
+  var t = $('#toast');
+  t.textContent = msg; t.className = tipo || ''; t.style.display = 'block';
+  clearTimeout(toastT);
+  toastT = setTimeout(function () { t.style.display = 'none'; }, tipo === 'err' ? 6000 : 2800);
+}
+function ls(k, def) { try { var v = localStorage.getItem(k); return v == null ? def : v; } catch (e) { return def; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
+
+// ---------- estado ----------
+var S = {
+  obra: ls('rc_obra', ''), cam: ls('rc_cam', ''),
+  estado: null, motivos: [],
+  defectos: DEFECTOS_BASE.slice(),
+  fotos: [], filtro: 'hoy', gps: null, gpsP: null, pend: null, prev: null, det: null, exp: null, urls: [],
+  autoDesc: ls('rc_auto', '1') !== '0'
+};
+try { var d = JSON.parse(ls('rc_defectos', 'null')); if (Array.isArray(d) && d.length) S.defectos = d; } catch (e) { /* por defecto */ }
+function guardarDefectos() { lsSet('rc_defectos', JSON.stringify(S.defectos)); }
+
+// ---------- base de datos ----------
+var db;
+function abrirDB() {
+  return new Promise(function (ok, err) {
+    var r = indexedDB.open('revision-camaras', 1);
+    r.onupgradeneeded = function () {
+      r.result.createObjectStore('fotos', { keyPath: 'id' });
+      r.result.createObjectStore('img');
+    };
+    r.onsuccess = function () { db = r.result; ok(); };
+    r.onerror = function () { err(r.error); };
+  });
+}
+function req(r) { return new Promise(function (ok, err) { r.onsuccess = function () { ok(r.result); }; r.onerror = function () { err(r.error); }; }); }
+function finTx(t) { return new Promise(function (ok, err) { t.oncomplete = ok; t.onerror = function () { err(t.error); }; t.onabort = function () { err(t.error); }; }); }
+function dbTodas() { return req(db.transaction('fotos', 'readonly').objectStore('fotos').getAll()); }
+function dbImg(id) { return req(db.transaction('img', 'readonly').objectStore('img').get(id)); }
+function dbMeta(rec) { return req(db.transaction('fotos', 'readwrite').objectStore('fotos').put(rec)); }
+function dbNueva(rec, blob) {
+  var t = db.transaction(['fotos', 'img'], 'readwrite');
+  t.objectStore('fotos').put(rec);
+  t.objectStore('img').put(blob, rec.id);
+  return finTx(t);
+}
+function dbBorrar(id) {
+  var t = db.transaction(['fotos', 'img'], 'readwrite');
+  t.objectStore('fotos').delete(id);
+  t.objectStore('img').delete(id);
+  return finTx(t);
+}
+
+// ---------- GPS ----------
+function pedirGps() {
+  S.gps = null;
+  S.gpsP = new Promise(function (ok) {
+    if (!navigator.geolocation) { $('#gpsEstado').textContent = 'Este navegador no tiene GPS.'; return ok(); }
+    navigator.geolocation.getCurrentPosition(function (p) {
+      S.gps = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy };
+      $('#gpsEstado').textContent = 'GPS listo (±' + Math.round(p.coords.accuracy) + ' m)';
+      ok();
+    }, function (e) {
+      $('#gpsEstado').textContent = 'Sin GPS: ' + (e && e.message ? e.message : 'permiso denegado');
+      ok();
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  });
+}
+
+// ---------- imagen y sello ----------
+function cargarBitmap(src) {
+  if (window.createImageBitmap) {
+    return createImageBitmap(src, { imageOrientation: 'from-image' }).catch(function () { return createImageBitmap(src); });
+  }
+  return new Promise(function (ok, err) {
+    var u = URL.createObjectURL(src), i = new Image();
+    i.onload = function () { ok(i); };
+    i.onerror = function () { err(new Error('No se pudo leer la foto')); };
+    i.src = u;
+  });
+}
+function medida(b) { return { w: b.width || b.naturalWidth, h: b.height || b.naturalHeight }; }
+
+function partir(ctx, texto, maxW) {
+  var pal = String(texto).split(/\s+/), out = [], act = '';
+  pal.forEach(function (p) {
+    var prueba = act ? act + ' ' + p : p;
+    if (act && ctx.measureText(prueba).width > maxW) { out.push(act); act = p; } else { act = prueba; }
+  });
+  if (act) out.push(act);
+  return out.length ? out : [''];
+}
+function apilar(ctx, lineas, x, y, maxW, u, desdeAbajo) {
+  var items = [], total = 0, gap = Math.max(2, Math.round(u * 0.08));
+  lineas.forEach(function (L) {
+    var size = Math.round(u * L.k);
+    ctx.font = (L.n ? '' : 'bold ') + size + 'px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+    partir(ctx, L.t, maxW - size * 0.8).forEach(function (s) {
+      var alto = Math.round(size * 1.35);
+      items.push({ s: s, size: size, alto: alto, L: L, font: ctx.font, w: ctx.measureText(s).width + size * 0.8 });
+      total += alto + gap;
+    });
+  });
+  var yy = desdeAbajo ? y - total + gap : y;
+  ctx.textBaseline = 'middle';
+  items.forEach(function (it) {
+    ctx.fillStyle = it.L.bg;
+    ctx.fillRect(x, yy, it.w, it.alto);
+    ctx.fillStyle = it.L.fg || '#fff';
+    ctx.font = it.font;
+    ctx.fillText(it.s, x + it.size * 0.4, yy + it.alto / 2 + 1);
+    yy += it.alto + gap;
+  });
+}
+function sello(ctx, w, h, r) {
+  var u = Math.max(14, Math.round(Math.min(w, h) * 0.034)), pad = Math.round(u * 0.5), maxW = w - pad * 2;
+  var oscuro = 'rgba(17,24,39,.88)';
+  var top = [
+    { t: 'CÁMARA ' + (r.cam || '—'), k: 1.6, bg: oscuro },
+    { t: r.estado, k: 1.6, bg: r.estado === 'MALA' ? 'rgba(220,38,38,.96)' : 'rgba(22,163,74,.96)' }
+  ];
+  if (r.estado === 'MALA') {
+    r.motivos.forEach(function (m) { top.push({ t: '• ' + m, k: 1.15, bg: 'rgba(127,29,29,.94)' }); });
+  }
+  if (r.nota) top.push({ t: r.nota, k: 0.95, bg: oscuro, n: true });
+  var bot = [];
+  if (r.obra) bot.push({ t: r.obra, k: 0.85, bg: 'rgba(17,24,39,.8)', n: true });
+  bot.push({ t: fechaCorta(r.ts) + '  ' + horaCorta(r.ts), k: 0.85, bg: 'rgba(17,24,39,.8)', n: true });
+  bot.push({ t: gpsTexto(r), k: 0.75, bg: 'rgba(17,24,39,.8)', n: true });
+  apilar(ctx, top, pad, pad, maxW, u, false);
+  apilar(ctx, bot, pad, h - pad, maxW, u, true);
+}
+function pintarFoto(canvas, bmp, r) {
+  var m = medida(bmp);
+  canvas.width = m.w; canvas.height = m.h;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(bmp, 0, 0);
+  sello(ctx, m.w, m.h, r);
+}
+async function procesarArchivo(file, p, ts) {
+  var bmp = await cargarBitmap(file), m = medida(bmp);
+  var esc = Math.min(1, 1600 / Math.max(m.w, m.h));
+  var w = Math.round(m.w * esc), h = Math.round(m.h * esc);
+  var c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').drawImage(bmp, 0, 0, w, h);
+  var blob = await toBlob(c, 'image/jpeg', 0.85);
+  var te = 320 / Math.max(w, h), tw = Math.round(w * te), th = Math.round(h * te);
+  var c2 = document.createElement('canvas'); c2.width = tw; c2.height = th;
+  c2.getContext('2d').drawImage(c, 0, 0, tw, th);
+  var thumb = await toBlob(c2, 'image/jpeg', 0.7);
+  if (bmp.close) bmp.close();
+  var rec = {
+    id: Date.now(), ts: ts || Date.now(), obra: S.obra, cam: p.cam, estado: p.estado,
+    motivos: p.motivos.slice(), nota: '', gps: p.gps || null, w: w, h: h, th: thumb
+  };
+  return { rec: rec, blob: blob, pend: p };
+}
+
+// ---------- controles reutilizables ----------
+function estadoBtns(box, get, set) {
+  box.innerHTML = '';
+  ['BUENA', 'MALA'].forEach(function (v) {
+    var b = el('button', 'est ' + v.toLowerCase() + (get() === v ? ' on' : ''), v);
+    b.type = 'button';
+    b.onclick = function () { set(v); estadoBtns(box, get, set); };
+    box.appendChild(b);
+  });
+}
+function chipsUI(box, arr, onChange) {
+  box.innerHTML = '';
+  var todos = S.defectos.slice();
+  arr.forEach(function (m) { if (todos.indexOf(m) < 0) todos.push(m); });
+  todos.forEach(function (d) {
+    var on = arr.indexOf(d) >= 0;
+    var b = el('button', 'chip' + (on ? ' on' : ''), d);
+    b.type = 'button';
+    b.onclick = function () {
+      var i = arr.indexOf(d);
+      if (i >= 0) arr.splice(i, 1); else arr.push(d);
+      chipsUI(box, arr, onChange);
+      if (onChange) onChange();
+    };
+    box.appendChild(b);
+  });
+  var ed = el('button', 'chip edit', '＋ Otro / editar');
+  ed.type = 'button';
+  ed.onclick = function () { abrirMotivos(function () { chipsUI(box, arr, onChange); }); };
+  box.appendChild(ed);
+}
+
+// ---------- pantalla de captura ----------
+function pintarCaptura() {
+  estadoBtns($('#estadoBox'), function () { return S.estado; }, function (v) {
+    S.estado = v;
+    if (v === 'BUENA') S.motivos = [];
+    pintarCaptura();
+  });
+  var mb = $('#motivosBox');
+  mb.hidden = S.estado !== 'MALA';
+  if (S.estado === 'MALA') chipsUI($('#chips'), S.motivos);
+}
+function validar() {
+  var cam = S.cam.trim();
+  if (!cam) { aviso('Escribe el número de la cámara.', 'err'); $('#cam').focus(); return null; }
+  if (!S.estado) { aviso('Marca si la cámara está BUENA o MALA.', 'err'); return null; }
+  if (S.estado === 'MALA' && !S.motivos.length) { aviso('Marca al menos un motivo de por qué está mala.', 'err'); return null; }
+  return { cam: cam, estado: S.estado, motivos: S.motivos.slice(), gps: null };
+}
+function alSacar(archivo) {
+  return async function (ev) {
+    var f = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    var p = S.pend; S.pend = null;
+    if (!f || !p) return;
+    try {
+      aviso('Guardando…');
+      if (archivo === 'cam') { await Promise.race([S.gpsP || Promise.resolve(), sleep(5000)]); p.gps = S.gps; }
+      var res = await procesarArchivo(f, p, archivo === 'gal' ? (f.lastModified || Date.now()) : Date.now());
+      res.origen = archivo;
+      await mostrarPrev(res);
+      $('#toast').style.display = 'none';
+    } catch (e) {
+      aviso('No se pudo guardar: ' + (e && e.message ? e.message : e), 'err');
+    }
+  };
+}
+
+// ---------- confirmación de la foto ----------
+function nombreCopia(rec) { return nombreArchivo(rec, new Set(), true).replace('/', '_'); }
+async function mostrarPrev(res) {
+  var bmp = await cargarBitmap(res.blob), c = $('#prevCanvas');
+  pintarFoto(c, bmp, res.rec);
+  if (bmp.close) bmp.close();
+  res.copia = await toBlob(c, 'image/jpeg', 0.9);
+  S.prev = res;
+  var txt = 'Revisa que se lea el número de cámara y el estado.';
+  if (!res.rec.gps && res.origen === 'cam') txt = '⚠ Sin GPS en esta foto. ' + txt;
+  if (S.autoDesc && res.origen === 'cam') txt += ' Al guardar, también queda una copia en el celular.';
+  $('#prevInfo').textContent = txt;
+  $('#prevOk').disabled = false;
+  $('#dlgPrev').showModal();
+}
+async function confirmarPrev() {
+  var P = S.prev; if (!P) return;
+  $('#prevOk').disabled = true;
+  try {
+    P.rec.id = Date.now();
+    var copiaOk = true;
+    if (S.autoDesc && P.origen === 'cam') {
+      try { descargar(P.copia, nombreCopia(P.rec)); } catch (e) { copiaOk = false; }
+    }
+    await dbNueva(P.rec, P.blob);
+    S.prev = null; $('#dlgPrev').close();
+    S.filtro = fechaISO(P.rec.ts);
+    S.estado = null; S.motivos = [];
+    await cargar(); pintarCaptura();
+    aviso('Guardada: cámara ' + P.rec.cam + ' · ' + P.rec.estado + (copiaOk ? '' : ' · la copia en el celular falló'), copiaOk ? 'ok' : 'err');
+  } catch (e) {
+    $('#prevInfo').textContent = '⚠ No se pudo guardar: ' + (e && e.message ? e.message : e);
+    $('#prevOk').disabled = false;
+  }
+}
+function repetirPrev() {
+  var P = S.prev; if (!P) return;
+  S.prev = null; $('#dlgPrev').close();
+  S.pend = P.pend;
+  if (P.origen === 'cam') { pedirGps(); $('#fCam').click(); } else { $('#fGal').click(); }
+}
+function descartarPrev() { S.prev = null; $('#dlgPrev').close(); }
+
+// ---------- galería ----------
+async function cargar() {
+  var todas = await dbTodas();
+  todas.sort(function (a, b) { return b.ts - a.ts; });
+  S.fotos = todas;
+  pintarLista();
+}
+function fechasDisponibles() {
+  var set = {};
+  S.fotos.forEach(function (r) { set[fechaISO(r.ts)] = 1; });
+  return Object.keys(set).sort().reverse();
+}
+function filtradas() {
+  if (S.filtro === 'todas') return S.fotos;
+  var f = S.filtro === 'hoy' ? fechaISO(Date.now()) : S.filtro;
+  return S.fotos.filter(function (r) { return fechaISO(r.ts) === f; });
+}
+function pintarLista() {
+  S.urls.forEach(function (u) { URL.revokeObjectURL(u); });
+  S.urls = [];
+  var sel = $('#filtro'), fechas = fechasDisponibles(), hoy = fechaISO(Date.now());
+  if (S.filtro === 'hoy' && !S.fotos.some(function (r) { return fechaISO(r.ts) === hoy; }) && fechas.length) S.filtro = fechas[0];
+  sel.innerHTML = '';
+  var opts = fechas.slice();
+  if (opts.indexOf(hoy) < 0) opts.unshift(hoy);
+  opts.forEach(function (f) {
+    var o = el('option', '', (f === hoy ? 'Hoy · ' : '') + f.split('-').reverse().join('-'));
+    o.value = f; sel.appendChild(o);
+  });
+  var oT = el('option', '', 'Todas las fechas'); oT.value = 'todas'; sel.appendChild(oT);
+  sel.value = S.filtro === 'hoy' ? hoy : S.filtro;
+  var lista = filtradas(), b = 0, m = 0;
+  lista.forEach(function (r) { if (r.estado === 'MALA') m++; else b++; });
+  $('#resumen').textContent = lista.length ? lista.length + ' fotos · ' + b + ' buenas · ' + m + ' malas' : '';
+  var g = $('#grid'); g.innerHTML = '';
+  if (!lista.length) { g.appendChild(el('div', 'vacio', 'Todavía no hay fotos en esta fecha.')); return; }
+  lista.forEach(function (r) {
+    var card = el('button', 'card'); card.type = 'button';
+    var img = el('img'); img.alt = 'Cámara ' + r.cam;
+    var u = URL.createObjectURL(r.th); S.urls.push(u); img.src = u;
+    var bd = el('div', 'b');
+    var s1 = el('strong', '', r.cam || '—');
+    var tag = el('span', 'tag ' + r.estado, r.estado);
+    var hora = el('span', '', ' ' + horaCorta(r.ts)); hora.style.color = 'var(--mut)';
+    bd.appendChild(s1); bd.appendChild(tag); bd.appendChild(hora);
+    if (r.estado === 'MALA' && r.motivos.length) bd.appendChild(el('div', 'mot', r.motivos.join(' · ')));
+    card.appendChild(img); card.appendChild(bd);
+    card.onclick = function () { abrirDet(r.id); };
+    g.appendChild(card);
+  });
+}
+
+// ---------- detalle / edición ----------
+function pintarDet() { if (S.det) pintarFoto($('#detCanvas'), S.det.bmp, S.det.rec); }
+var detT;
+function guardarDet() { clearTimeout(detT); detT = setTimeout(function () { if (S.det) dbMeta(S.det.rec).catch(function () {}); }, 250); }
+async function abrirDet(id) {
+  var rec = S.fotos.find(function (r) { return r.id === id; });
+  if (!rec) return;
+  try {
+    var blob = await dbImg(id), bmp = await cargarBitmap(blob);
+    S.det = { rec: rec, blob: blob, bmp: bmp };
+    $('#detCam').value = rec.cam;
+    $('#detNota').value = rec.nota || '';
+    pintarDetControles();
+    pintarDet();
+    $('#dlgDet').showModal();
+  } catch (e) { aviso('No se pudo abrir la foto: ' + (e && e.message ? e.message : e), 'err'); }
+}
+function pintarDetControles() {
+  var rec = S.det.rec;
+  estadoBtns($('#detEstado'), function () { return rec.estado; }, function (v) {
+    rec.estado = v;
+    if (v === 'BUENA') rec.motivos = [];
+    pintarDetControles(); pintarDet(); guardarDet();
+  });
+  $('#detMotBox').hidden = rec.estado !== 'MALA';
+  if (rec.estado === 'MALA') chipsUI($('#detChips'), rec.motivos, function () { pintarDet(); guardarDet(); });
+}
+function cerrarDet() {
+  clearTimeout(detT);
+  if (S.det) { dbMeta(S.det.rec).catch(function () {}); if (S.det.bmp.close) S.det.bmp.close(); }
+  S.det = null;
+  $('#dlgDet').close();
+  pintarLista();
+}
+async function detArchivo() {
+  var c = $('#detCanvas'), blob = await toBlob(c, 'image/jpeg', 0.9);
+  return new File([blob], nombreArchivo(S.det.rec, new Set(), true).split('/').pop(), { type: 'image/jpeg' });
+}
+function descargar(blob, nombre) {
+  var a = document.createElement('a'), u = URL.createObjectURL(blob);
+  a.href = u; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(u); }, 60000);
+}
+async function compartir(files) {
+  if (!navigator.canShare || !navigator.canShare({ files: files })) throw new Error('Este celular no permite compartir archivos desde el navegador. Usa Descargar.');
+  try { await navigator.share({ files: files }); } catch (e) { if (e && e.name === 'AbortError') return; throw e; }
+}
+
+// ---------- motivos ----------
+var motCb = null;
+function abrirMotivos(cb) { motCb = cb || null; pintarMotivos(); $('#dlgMot').showModal(); }
+function pintarMotivos() {
+  var box = $('#motLista'); box.innerHTML = '';
+  S.defectos.forEach(function (d, i) {
+    var row = el('div', 'mrow'); row.appendChild(el('span', '', d));
+    var x = el('button', '', 'Quitar'); x.type = 'button';
+    x.onclick = function () { S.defectos.splice(i, 1); guardarDefectos(); pintarMotivos(); };
+    row.appendChild(x); box.appendChild(row);
+  });
+}
+function agregarMotivo() {
+  var v = $('#motNuevo').value.trim();
+  if (!v) return;
+  if (S.defectos.some(function (d) { return d.toLowerCase() === v.toLowerCase(); })) { aviso('Ese motivo ya existe.', 'err'); return; }
+  S.defectos.push(v); guardarDefectos(); $('#motNuevo').value = ''; pintarMotivos();
+}
+
+// ---------- exportar ----------
+function abrirExport() {
+  var n = filtradas().length;
+  if (!n) { aviso('No hay fotos en esta fecha.', 'err'); return; }
+  S.exp = null;
+  $('#expInfo').textContent = n + ' fotos en la lista actual. Las fotos salen con el sello (cámara, estado, motivos, fecha, GPS).';
+  $('#expProg').textContent = ''; $('#expRes').hidden = true; $('#expPrep').disabled = false;
+  $('#dlgExp').showModal();
+}
+async function prepararExport() {
+  var lista = filtradas().slice().reverse();
+  if ($('#expMalas').checked) lista = lista.filter(function (r) { return r.estado === 'MALA'; });
+  if (!lista.length) { aviso('No hay fotos MALAS en esta lista.', 'err'); return; }
+  var btn = $('#expPrep'); btn.disabled = true; $('#expRes').hidden = true;
+  try {
+    var usados = new Set(), zipFiles = [], filas = [], fotos = [], conFecha = S.filtro === 'todas', tam = 0;
+    for (var i = 0; i < lista.length; i++) {
+      var r = lista[i];
+      $('#expProg').textContent = 'Preparando ' + (i + 1) + ' de ' + lista.length + '…';
+      await sleep(0);
+      var bmp = await cargarBitmap(await dbImg(r.id));
+      var c = document.createElement('canvas'); pintarFoto(c, bmp, r);
+      if (bmp.close) bmp.close();
+      var out = await toBlob(c, 'image/jpeg', 0.88);
+      var data = new Uint8Array(await out.arrayBuffer()), nombre = nombreArchivo(r, usados, conFecha);
+      tam += data.length;
+      zipFiles.push({ name: nombre, data: data, date: new Date(r.ts) });
+      fotos.push(new File([data], nombre.split('/').pop(), { type: 'image/jpeg' }));
+      filas.push({ r: r, nombre: nombre });
+    }
+    var csv = new Blob([csvFilas(filas)], { type: 'text/csv;charset=utf-8' });
+    var csvData = new Uint8Array(await csv.arrayBuffer());
+    zipFiles.push({ name: 'resumen.csv', data: csvData, date: new Date() });
+    var etiqueta = slug(S.obra) || 'obra';
+    var fechaTxt = S.filtro === 'todas' ? 'todas' : (S.filtro === 'hoy' ? fechaISO(Date.now()) : S.filtro);
+    S.exp = { zip: zipBlob(zipFiles), csv: csv, fotos: fotos, base: 'Camaras_' + etiqueta + '_' + fechaTxt };
+    var m = lista.filter(function (r) { return r.estado === 'MALA'; }).length;
+    $('#expResTxt').textContent = lista.length + ' fotos (' + (lista.length - m) + ' buenas, ' + m + ' malas) · ' + (tam / 1048576).toFixed(1) + ' MB';
+    $('#expProg').textContent = '';
+    $('#expRes').hidden = false;
+  } catch (e) {
+    $('#expProg').textContent = '';
+    aviso('No se pudo preparar: ' + (e && e.message ? e.message : e), 'err');
+  } finally { btn.disabled = false; }
+}
+
+// ---------- eventos ----------
+function iniciar() {
+  $('#obra').value = S.obra;
+  $('#cam').value = S.cam;
+  $('#obra').addEventListener('input', function (e) { S.obra = e.target.value.trim(); lsSet('rc_obra', S.obra); });
+  $('#cam').addEventListener('input', function (e) { S.cam = e.target.value.toUpperCase(); lsSet('rc_cam', S.cam); });
+  $('#cam').addEventListener('focus', function (e) { e.target.select(); });
+  $('#filtro').addEventListener('change', function (e) { S.filtro = e.target.value; pintarLista(); });
+
+  $('#btnFoto').onclick = function () {
+    var p = validar(); if (!p) return;
+    S.pend = p; pedirGps(); $('#fCam').click();
+  };
+  $('#btnGal').onclick = function () {
+    var p = validar(); if (!p) return;
+    S.pend = p; $('#fGal').click();
+  };
+  $('#autoDesc').checked = S.autoDesc;
+  $('#autoDesc').addEventListener('change', function (e) { S.autoDesc = e.target.checked; lsSet('rc_auto', S.autoDesc ? '1' : '0'); });
+  $('#prevOk').onclick = confirmarPrev;
+  $('#prevRep').onclick = repetirPrev;
+  $('#prevDesc').onclick = function () { if (confirm('¿Descartar esta foto? No se guardará.')) descartarPrev(); };
+  $('#dlgPrev').addEventListener('cancel', function (e) { e.preventDefault(); });
+  $('#fCam').addEventListener('change', alSacar('cam'));
+  $('#fGal').addEventListener('change', alSacar('gal'));
+
+  $('#detCam').addEventListener('input', function (e) { if (!S.det) return; S.det.rec.cam = e.target.value.toUpperCase(); pintarDet(); guardarDet(); });
+  $('#detNota').addEventListener('input', function (e) { if (!S.det) return; S.det.rec.nota = e.target.value.trim(); pintarDet(); guardarDet(); });
+  $('#detListo').onclick = cerrarDet;
+  $('#dlgDet').addEventListener('cancel', function (e) { e.preventDefault(); cerrarDet(); });
+  $('#detBorrar').onclick = async function () {
+    if (!S.det || !confirm('¿Borrar esta foto? No se puede deshacer.')) return;
+    var id = S.det.rec.id; clearTimeout(detT);
+    try { await dbBorrar(id); S.det = null; $('#dlgDet').close(); await cargar(); } catch (e) { aviso('No se pudo borrar: ' + e.message, 'err'); }
+  };
+  $('#detDesc').onclick = async function () { try { var f = await detArchivo(); descargar(f, f.name); } catch (e) { aviso(e.message, 'err'); } };
+  $('#detComp').onclick = async function () { try { await compartir([await detArchivo()]); } catch (e) { aviso(e.message, 'err'); } };
+
+  $('#motAgregar').onclick = agregarMotivo;
+  $('#motNuevo').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); agregarMotivo(); } });
+  $('#motReset').onclick = function () { S.defectos = DEFECTOS_BASE.slice(); guardarDefectos(); pintarMotivos(); };
+  $('#motListo').onclick = function () { $('#dlgMot').close(); pintarCaptura(); if (motCb) motCb(); };
+
+  $('#btnExport').onclick = abrirExport;
+  $('#expPrep').onclick = prepararExport;
+  $('#expMalas').addEventListener('change', function () { $('#expRes').hidden = true; S.exp = null; });
+  $('#expCerrar').onclick = function () { $('#dlgExp').close(); };
+  $('#expZip').onclick = function () { if (S.exp) descargar(S.exp.zip, S.exp.base + '.zip'); };
+  $('#expCsv').onclick = function () { if (S.exp) descargar(S.exp.csv, S.exp.base + '.csv'); };
+  $('#expShare').onclick = async function () { try { if (S.exp) await compartir(S.exp.fotos); } catch (e) { aviso(e.message + ' Prueba con Descargar ZIP.', 'err'); } };
+
+  pintarCaptura();
+  abrirDB().then(cargar).catch(function (e) { aviso('No se pudo abrir el almacenamiento del celular: ' + (e && e.message ? e.message : e), 'err'); });
+}
+iniciar();
+})();
+</script>
+</body>
+</html>
